@@ -1,4 +1,5 @@
 # Copyright (c) 2024-2026 Ziqi Fan
+# Copyright (c) 2025-2026 Junfeng Tao
 # SPDX-License-Identifier: Apache-2.0
 
 from __future__ import annotations
@@ -269,3 +270,76 @@ def reset_root_state_uniform(
         # set into the physics simulation
         asset.write_root_pose_to_sim(torch.cat([positions, orientations], dim=-1), env_ids=non_pit_env_ids)
         asset.write_root_velocity_to_sim(velocities, env_ids=non_pit_env_ids)
+
+
+def periodic_zero_velocity_command(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor | None,
+    command_name: str = "base_velocity",
+    cycle_period: float = 20.0,
+    stop_duration: float = 4.0,
+):
+    """每隔 cycle_period 秒，强制将速度指令置 0，持续 stop_duration 秒，循环往复。
+
+    通过 episode 已运行时间取模来判断当前处于"停"还是"走"的阶段。
+    配合 ``mode="interval"`` 且 ``interval_range_s`` 小于 ``step_dt``（如 0.005s）
+    使用，确保每个 step 都触发，从而实现连续的 stop/drive 切换。
+
+    当离开 stop 阶段时，自动触发命令重采样，确保速度能恢复到非零值。
+
+    Args:
+        env: 仿真环境。
+        env_ids: 需要处理的环境索引，None 表示全部。
+        command_name: 要操作的速度指令名称，默认 "base_velocity"。
+        cycle_period: 一个完整周期（停+走）的总时长，单位秒。默认 20s。
+        stop_duration: 每个周期内速度置 0 的持续时长，单位秒。默认 4s。
+    """
+    if env_ids is None:
+        env_ids = torch.arange(env.num_envs, device=env.device)
+
+    # 获取目标 command term
+    command_term = env.command_manager.get_term(command_name)
+
+    # ---- 相位偏移（每个 env 不同，避免同步进入 stop）----
+    if not hasattr(command_term, "_periodic_phase_offset"):
+        all_env_ids = torch.arange(env.num_envs, device=env.device)
+        command_term._periodic_phase_offset = (
+            (all_env_ids * 7919 + 104729) % int(cycle_period * 1000)
+        ).float() / 1000.0
+
+    # ---- 计算所有 env 的周期相位（不只是 env_ids 子集）----
+    all_env_ids = torch.arange(env.num_envs, device=env.device)
+    all_phase = command_term._periodic_phase_offset
+    all_episode_time = env.episode_length_buf.float() * env.step_dt + all_phase
+    all_cycle_time = all_episode_time % cycle_period
+    all_stop_mask = all_cycle_time < stop_duration
+
+    # ---- 检测 stop→drive 转换，触发重采样恢复速度 ----
+    prev_stop = getattr(command_term, "_prev_periodic_stop",
+                        torch.zeros(env.num_envs, dtype=torch.bool, device=env.device))
+    exiting_stop_ids = (~all_stop_mask & prev_stop).nonzero(as_tuple=False).flatten()
+
+    if len(exiting_stop_ids) > 0:
+        # 离开 stop 阶段 → 强制重采样，生成新的非零速度指令
+        command_term._resample(exiting_stop_ids)
+
+    # ---- stop 阶段 → 线速度（x, y）强制置 0 ----
+    stop_env_ids = all_stop_mask.nonzero(as_tuple=False).flatten()
+    if len(stop_env_ids) > 0:
+        command_term.vel_command_b[stop_env_ids, :2] = 0.0
+
+    # ---- 保存当前 stop 状态供下一步检测 ----
+    command_term._prev_periodic_stop = all_stop_mask
+
+
+def bad_orientation_2(
+    env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot") # type: ignore
+) -> torch.Tensor:
+    """Terminate when the asset's orientation is too far from the desired orientation limits.
+
+    This is computed by checking the angle between the projected gravity vector and the z-axis.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return (asset.data.projected_gravity_b[:, 2] > 0) | (asset.data.projected_gravity_b[:, :2].abs() > 0.85).any(-1)
+

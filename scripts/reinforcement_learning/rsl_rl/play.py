@@ -1,4 +1,5 @@
 # Copyright (c) 2024-2026 Ziqi Fan
+# Copyright (c) 2025-2026 Junfeng Tao
 # SPDX-License-Identifier: Apache-2.0
 
 # Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
@@ -104,6 +105,83 @@ from rl_utils import camera_follow
 # PLACEHOLDER: Extension template (do not remove this comment)
 
 
+def _convert_legacy_checkpoint(checkpoint_path: str) -> str:
+    """Detect and convert legacy checkpoint to v5 format; return the path to load.
+
+    Supports three checkpoint formats:
+      A) Oldest  (rsl-rl < 4.0):  {"model_state_dict": {"actor.*", "critic.*", "log_std"}, ...}
+      B) Split   (manual conv):   {"actor_state_dict": {"0.weight", ..., "log_std"}, ...}   (no mlp. prefix)
+      C) Current (rsl-rl >= 4.0): {"actor_state_dict": {"mlp.*", "distribution.log_std_param"}, ...}
+
+    The conversion is **non-destructive**: Format C is left untouched; formats A/B are
+    converted and written to a ``*_v5_compat.pt`` sibling file.  The returned path is the
+    one that can actually be loaded by the current rsl-rl runner.
+    """
+    import torch
+
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+
+    # ── detect format ────────────────────────────────────────────────────────
+    if "model_state_dict" in ckpt:
+        fmt = "A"
+    elif "actor_state_dict" in ckpt:
+        first_key = next(iter(ckpt["actor_state_dict"].keys()), "")
+        if first_key.startswith("mlp.") or first_key.startswith("rnn.") or first_key.startswith("distribution."):
+            fmt = "C"
+        else:
+            fmt = "B"
+    else:
+        fmt = "C"  # unknown – trust the caller
+
+    if fmt == "C":
+        return checkpoint_path  # nothing to do
+
+    # ── convert ──────────────────────────────────────────────────────────────
+    print(f"[INFO] Detected legacy checkpoint format ({fmt}), converting to v5 ...")
+
+    def _is_rnn_key(k: str) -> bool:
+        return k.startswith("rnn.") or k in ("rnn_type", "rnn_hidden_dim", "rnn_num_layers")
+
+    def _to_mlpmodel(state: dict) -> dict:
+        """Rewrite flat/old keys into MLPModel / RNNModel nested keys."""
+        new_state: dict[str, torch.Tensor] = {}
+        for k, v in state.items():
+            if k == "log_std":
+                new_state["distribution.log_std_param"] = v
+            elif _is_rnn_key(k):
+                new_state[k] = v  # rnn.* keys stay as-is (already prefixed)
+            else:
+                new_state[f"mlp.{k}"] = v
+        return new_state
+
+    if fmt == "A":
+        model_dict = ckpt.pop("model_state_dict")
+        actor_raw: dict[str, torch.Tensor] = {}
+        critic_raw: dict[str, torch.Tensor] = {}
+
+        for k, v in model_dict.items():
+            if k.startswith("actor."):
+                actor_raw[k.removeprefix("actor.")] = v
+            elif k.startswith("critic."):
+                critic_raw[k.removeprefix("critic.")] = v
+            elif k == "log_std":
+                actor_raw[k] = v
+            # ignore other keys (e.g. standalone rnn.* from old ActorCriticRecurrent)
+
+        ckpt["actor_state_dict"] = _to_mlpmodel(actor_raw)
+        ckpt["critic_state_dict"] = _to_mlpmodel(critic_raw)
+
+    elif fmt == "B":
+        ckpt["actor_state_dict"] = _to_mlpmodel(ckpt["actor_state_dict"])
+        ckpt["critic_state_dict"] = _to_mlpmodel(ckpt["critic_state_dict"])
+
+    # ── write compat file ────────────────────────────────────────────────────
+    out_path = checkpoint_path.replace(".pt", "_v5_compat.pt")
+    torch.save(ckpt, out_path)
+    print(f"[INFO] Converted checkpoint saved to: {out_path}")
+    return out_path
+
+
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: RslRlBaseRunnerCfg):
     """Play with RSL-RL agent."""
@@ -201,6 +279,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         runner = DistillationRunner(env, agent_cfg.to_dict(), log_dir=None, device=agent_cfg.device)
     else:
         raise ValueError(f"Unsupported runner class: {agent_cfg.class_name}")
+    resume_path = _convert_legacy_checkpoint(resume_path)
     runner.load(resume_path)
 
     # obtain the trained policy for inference

@@ -1,4 +1,5 @@
 # Copyright (c) 2024-2026 Ziqi Fan
+# Copyright (c) 2025-2026 Junfeng Tao
 # SPDX-License-Identifier: Apache-2.0
 
 # Copyright (c) 2022-2026, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
@@ -282,6 +283,7 @@ class EventCfg:
         },
     )
 
+    
     randomize_rigid_body_mass_others = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="startup",
@@ -339,8 +341,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "damping_distribution_params": (0.5, 2.0),
+            "stiffness_distribution_params": (0.85, 1.15),
+            "damping_distribution_params": (0.85, 1.15),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -370,6 +372,17 @@ class EventCfg:
         params={"velocity_range": {"x": (-0.5, 0.5), "y": (-0.5, 0.5)}},
     )
 
+    periodic_stop_command = EventTerm(
+        func=mdp.periodic_zero_velocity_command,
+        mode="interval",
+        interval_range_s=(0.005, 0.005),
+        params={
+            "command_name": "base_velocity",
+            "cycle_period": 5.0,
+            "stop_duration": 2.0,
+        },
+    )
+
 
 @configclass
 class RewardsCfg:
@@ -391,12 +404,6 @@ class RewardsCfg:
             "target_height": 0.0,
         },
     )
-    body_lin_acc_l2 = RewTerm(
-        func=mdp.body_lin_acc_l2,
-        weight=0.0,
-        params={"asset_cfg": SceneEntityCfg("robot", body_names="")},
-    )
-
     # Joint penalties
     joint_torques_l2 = RewTerm(
         func=mdp.joint_torques_l2, weight=0.0, params={"asset_cfg": SceneEntityCfg("robot", joint_names=".*")}
@@ -454,17 +461,6 @@ class RewardsCfg:
         },
     )
 
-    wheel_vel_penalty = RewTerm(
-        func=mdp.wheel_vel_penalty,
-        weight=0.0,
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=""),
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
-            "command_name": "base_velocity",
-            "velocity_threshold": 0.5,
-            "command_threshold": 0.1,
-        },
-    )
 
     joint_mirror = RewTerm(
         func=mdp.joint_mirror,
@@ -494,6 +490,28 @@ class RewardsCfg:
                 ["FR_thigh_joint", "FL_thigh_joint", "RL_thigh_joint", "RR_thigh_joint"],
                 ["FR_calf_joint", "FL_calf_joint", "RL_calf_joint", "RR_calf_joint"],
             ],
+        },
+    )
+
+    feet_air_time_lin_xy = RewTerm(
+        func=mdp.feet_air_time_lin_xy_cmd,
+        weight=0.0,
+        params={
+            "command_name": "base_velocity",
+            "threshold": 0.5,
+            "cmd_threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
+        },
+    )
+
+    feet_air_time_ang_z = RewTerm(
+        func=mdp.feet_air_time_ang_z_cmd,
+        weight=0.0,
+        params={
+            "command_name": "base_velocity",
+            "threshold": 0.5,
+            "cmd_threshold": 0.1,
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
         },
     )
 
@@ -530,16 +548,6 @@ class RewardsCfg:
         func=mdp.track_ang_vel_z_exp, weight=0.0, params={"command_name": "base_velocity", "std": math.sqrt(0.25)}
     )
 
-    # Others
-    feet_air_time = RewTerm(
-        func=mdp.feet_air_time,
-        weight=0.0,
-        params={
-            "command_name": "base_velocity",
-            "threshold": 0.5,
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
-        },
-    )
 
     feet_air_time_variance = RewTerm(
         func=mdp.feet_air_time_variance_penalty,
@@ -562,30 +570,12 @@ class RewardsCfg:
         },
     )
 
-    feet_contact = RewTerm(
-        func=mdp.feet_contact,
-        weight=0.0,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
-            "command_name": "base_velocity",
-            "expect_contact_num": 2,
-        },
-    )
-
     feet_contact_without_cmd = RewTerm(
         func=mdp.feet_contact_without_cmd,
         weight=0.0,
         params={
             "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
             "command_name": "base_velocity",
-        },
-    )
-
-    feet_stumble = RewTerm(
-        func=mdp.feet_stumble,
-        weight=0.0,
-        params={
-            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=""),
         },
     )
 
@@ -620,14 +610,14 @@ class RewardsCfg:
         },
     )
 
-    feet_distance_y_exp = RewTerm(
-        func=mdp.feet_distance_y_exp,
+    foot_impact_velocity = RewTerm(
+        func=mdp.foot_impact_velocity,
         weight=0.0,
         params={
-            "std": math.sqrt(0.25),
-            "asset_cfg": SceneEntityCfg("robot", body_names=""),
-            "stance_width": float,
-        },
+            "sensor_cfg": SceneEntityCfg("contact_forces", body_names=".*_foot"),
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "speed_threshold": 0.10,
+        }
     )
 
     # feet_distance_xy_exp = RewTerm(
@@ -643,6 +633,52 @@ class RewardsCfg:
 
     upward = RewTerm(func=mdp.upward, weight=0.0)
 
+
+    phase_foot_trajectory_exp = RewTerm(
+        func=mdp.phase_foot_trajectory_exp,
+        weight=0.0,
+        params={
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", body_names=".*_foot"),
+            "std": 0.12,
+            "command_threshold": 0.1,
+            "cycle_time": 0.425,  # 一个完整步态周期时长（秒）
+            "phase_offsets": (0.0, 1.0, 1.0, 0.0),
+            "gait_span": -0.00,    # x 方向摆动半跨度（米），符号决定前后扫动方向
+            "gait_psi": 0.05,   # 摆动抬脚高度尺度（米）
+            "gait_delta": 0.02, # z 方向轨迹偏置（米）
+            "x_offset": 0.0,    # 轨迹整体 x 偏移（米）
+            "stance_span": 0.0, # 支撑相在 S∈[0,2) 中占据的长度
+            "stand_ref_z_offset": -0.0, # 基准站立足端参考在 body-z 的偏置（米）
+            "velocity_weight": 0.0, # 速度误差在总误差中的权重
+        },
+    )
+
+
+    hipx_joint_pos_penalty = RewTerm(
+        func=mdp.joint_pos_penalty,
+        weight=0.0,
+        params={
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stand_still_scale": 5.0,
+            "velocity_threshold": 0.5,
+            "command_threshold": 0.1,
+        },
+    )
+
+
+    knee_joint_pos_penalty = RewTerm(
+        func=mdp.joint_pos_penalty,
+        weight=0.0,
+        params={
+            "command_name": "base_velocity",
+            "asset_cfg": SceneEntityCfg("robot", joint_names=".*"),
+            "stand_still_scale": 5.0,
+            "velocity_threshold": 0.5,
+            "command_threshold": 0.1,
+        },
+    )
 
 @configclass
 class TerminationsCfg:
@@ -662,6 +698,7 @@ class TerminationsCfg:
         func=mdp.illegal_contact,
         params={"sensor_cfg": SceneEntityCfg("contact_forces", body_names=""), "threshold": 1.0},
     )
+    bad_orientation_2 = DoneTerm(func=mdp.bad_orientation_2)
 
 
 @configclass
@@ -670,14 +707,15 @@ class CurriculumCfg:
 
     terrain_levels = CurrTerm(func=mdp.terrain_levels_vel)
 
-    command_levels_lin_vel = CurrTerm(
-        func=mdp.command_levels_lin_vel,
+    gait_level = CurrTerm(func=mdp.gait_level_curve)
+
+    command_levels = CurrTerm(
+        func=mdp.command_levels_vel,
         params={
             "reward_term_name": "track_lin_vel_xy_exp",
-            "range_multiplier": (0.1, 1.0),
+            "range_multiplier": (0.2, 1.0),
         },
     )
-
     command_levels_ang_vel = CurrTerm(
         func=mdp.command_levels_ang_vel,
         params={
@@ -718,6 +756,9 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.render_interval = self.decimation
         self.sim.physics_material = self.scene.terrain.physics_material
         self.sim.physx.gpu_max_rigid_patch_count = 10 * 2**15
+        self.sim.physx.gpu_collision_stack_size = 2**28
+        self.sim.physx.max_position_iteration_count = 4
+        self.sim.physx.max_velocity_iteration_count = 1
         # update sensor update periods
         # we tick all the sensors based on the smallest update period (physics update period)
         if self.scene.height_scanner is not None:
