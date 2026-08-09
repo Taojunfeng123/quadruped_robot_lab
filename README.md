@@ -731,12 +731,15 @@ $$threshold_{effective} = threshold \div drive\_ratio$$
 #### 5.2 核心跟踪奖励
 
 **线速度跟踪 (指数核):**
-$$r_{lin\_vel} = \exp\left(-\frac{|v_{xy}^{cmd} - v_{xy}^{actual}|^2}{\sigma_{lin}^2}\right) \cdot \text{upright\_gate}$$
+
+$$r{lin\_vel} = \exp\left(-\frac{|v_{xy}^{cmd} - v_{xy}^{actual}|^2}{\sigma_{lin}^2}\right) \cdot \text{upright\_gate}$$
 
 **角速度跟踪 (指数核):**
-$$r_{ang\_vel} = \exp\left(-\frac{|\omega_z^{cmd} - \omega_z^{actual}|^2}{\sigma_{ang}^2}\right) \cdot \text{upright\_gate}$$
+
+$$r{ang\_vel} = \exp\left(-\frac{|\omega_z^{cmd} - \omega_z^{actual}|^2}{\sigma_{ang}^2}\right) \cdot \text{upright\_gate}$$
 
 **姿态门控 (Upright Gate):**
+
 $$\text{upright\_gate} = \frac{\text{clamp}(-\text{proj\_gravity}_z, 0, 0.7)}{0.7}$$
 
 ### 6. 步态相位与足端轨迹优化
