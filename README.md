@@ -65,7 +65,7 @@
 - 把这个项目安装在isaaclab项目外
 
   ```bash
-  git clone https://github.com/fan-ziqi/robot_lab.git
+  git clone https://github.com/Taojunfeng123/quadruped_robot_lab
   ```
 
 - 要记得在isaaclab同一个conda环境中下载这个项目
