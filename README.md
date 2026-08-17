@@ -150,8 +150,10 @@ scripts/
 ├── reinforcement_learning/          # RL 训练 & 推理脚本
 │   ├── rl_utils.py                  # 通用 RL 工具函数
 │   ├── rsl_rl/                      # rsl-rl 后端
-│   │   ├── train.py                 # 训练入口
-│   │   ├── play.py                  # 推理/评估入口
+│   │   ├── train.py                 # 训练入口(rsl_rl库版本为5.0.1)
+|   |   |—— train_new.py             # 训练入口(rsl_rl库版本为2.3.3)
+│   │   ├── play.py                  # 推理/评估入口(rsl_rl库版本为5.0.1)
+│   │   ├── play_new.py                  # 推理/评估入口(rsl_rl库版本为2.3.3)
 │   │   ├── play_cs.py               # 推理（camera stream）
 │   │   └── cli_args.py              # 命令行参数解析
 │   ├── skrl/                        # skrl 后端
@@ -173,7 +175,12 @@ scripts/
 ```
 
 #### 训练命令示例
-
+先查看rsl_rl库版本
+```bash
+#查看rsl_rl库版本
+pip show rsl-rl-lib
+```
+版本为5.0.1
 ```bash
 # Rough 地形训练
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Rough-train --headless
@@ -181,7 +188,14 @@ python scripts/reinforcement_learning/rsl_rl/train.py --task=Rough-train --headl
 # Stair 楼梯地形训练（续训）
 python scripts/reinforcement_learning/rsl_rl/train.py --task=Stair-train --headless
 ```
+版本为较低版本
+```bash
+# Rough 地形训练
+python scripts/reinforcement_learning/rsl_rl/train_new.py --task=Rough-train --headless
 
+# Stair 楼梯地形训练（续训）
+python scripts/reinforcement_learning/rsl_rl/train_new.py --task=Stair-train --headless
+```
 ---
 
 ### 4. `source/robot_lab/` — 源代码（pip editable install）
@@ -1037,16 +1051,31 @@ graph TB
 
 ---
 ## 训练流程 
+先查看rsl_rl库版本
+```bash
+#查看rsl_rl库版本
+pip show rsl-rl-lib
+```
 1.rough环境训练到gait_leval，command_leval，terrain_leval学满。
 - 第一轮关闭period_stop只用random_rough环境训练
 - 第二轮开启period_rtop加入斜坡地形训练
+rsl_rl库版本为5.0.1
 ```bash
 python scripts/reinforcement_learning/rsl_rl/train.py   --task=Rough-train --headless
 ```
+版本较低
+```bash
+python scripts/reinforcement_learning/rsl_rl/train_new.py   --task=Rough-train --headless
+```
 2.用rough环境训练出来的模型去stair地形继续训练
 -
+rsl_rl库版本为5.0.1
 ```bash
 python scripts/reinforcement_learning/rsl_rl/train.py   --task=Stair-train --headless
+```
+版本较低
+```bash
+python scripts/reinforcement_learning/rsl_rl/train_new.py   --task=Stair-train --headless
 ```
 ## **机器人配置文件**
 1. 由于第一次2real时候gap太大，电机抖动剧烈，我们采集了真实电机数据用mlp网络去做拟合，在配置文件中使用`MyDogSpringActuatorNetMLP`作为电机执行器。
