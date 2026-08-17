@@ -317,7 +317,7 @@ config/<category>/<robot_name>/
 ### 1. 总体系统架构框图
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 算法层["算法层"]
         A1["PPO 策略网络<br/>Actor-Critic MLP [512,256,128]"]
@@ -363,7 +363,7 @@ graph TB
 ### 2. 软硬件协同框图
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 仿真计算机["仿真计算机"]
         S1["GPU<br/>• 4096 环境并行 PhysX<br/>• PPO 神经网络推理<br/>• RayCaster 光线投射"]
@@ -386,7 +386,7 @@ graph LR
 ### 3. 训练数据流图
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 数据采集["数据采集 (24步 × 3000环境)"]
         DC1["① 命令采样<br/>SE(2) 速度命令<br/>每10s 重新采样"]
@@ -415,7 +415,7 @@ graph TB
 ### 4. 单步推理数据流 (观测 → 动作 → 力矩)
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 输入观测["输入 (45维)"]
         I1["base_ang_vel (3)<br/>角速度"]
@@ -458,7 +458,7 @@ graph LR
 ### 5. 奖励信号数据流
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 物理状态["物理状态 (每步)"]
         S1["基座: 速度/姿态/高度"]
@@ -515,7 +515,7 @@ graph TB
 ### 6. 课程学习数据流
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 触发条件["回合结束触发"]
         T1["max_episode_length_s=20s<br/>或提前终止"]
@@ -552,7 +552,7 @@ graph TB
 ### 7. 周期性停止机制
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 计时器["全局计时器"]
         TM["每环境独立相位<br/>offset = (id·7919+104729) mod 3"]
@@ -615,7 +615,7 @@ $$\mathcal{L} = \mathbb{E}_t \left[ L^{CLIP}(\theta) - c_1 L^{VF}(\phi) + c_2 S[
 #### 2.1 网络结构
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 观测输入["观测输入 s ∈ ℝ⁴⁵"]
         OBS["base_ang_vel(3) + projected_gravity(3) + cmd(3)<br/>+ joint_pos(12) + joint_vel(12) + last_action(12)"]
@@ -672,7 +672,7 @@ $$\max_\theta \mathbb{E}_{\xi \sim P(\Xi)} \left[ \mathbb{E}_{\tau \sim p(\tau|\
 ### 3.3 分层随机化策略
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 启动时固定["startup 模式 (重置时采样，回合内固定)"]
         ST1["材质属性<br/>64 bucket 离散化"]
@@ -799,7 +799,7 @@ $$\phi_i(t) = \frac{t}{T_{cycle}} + \phi_i^{offset} \pmod{1}$$
 #### 6.2 Bernstein/Bezier 足端轨迹
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 摆动相["摆动相 (~30% 周期)"]
         SW1["足端抬起 (z↑)"]
@@ -843,7 +843,7 @@ $$r_{gait} = \sum_{i \in feet} \exp\left(-\frac{|p_i^{ideal}(\phi_i) - p_i^{actu
 #### 7.2 执行器网络架构
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph LR
     subgraph 输入信号["输入信号"]
         IN1["位置误差 e(t)<br/>q_target - q_actual"]
@@ -900,7 +900,7 @@ $$\mathcal{L} = |\tau_{MLP} - \tau_{actual}|^2$$
 #### 8.2 机制设计
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 时间轴["时间轴 (每环境独立相位)"]
         T1["t=0s: 驱动开始"]
@@ -948,7 +948,7 @@ $$\delta_t = r_t + \gamma V(s_{t+1}) - V(s_t)$$
 ## **软件架构**
 ### 1. 训练结构
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 配置入口["配置入口"]
         CFG1["Rough-train<br/>RoughEnvCfg"]
@@ -998,7 +998,7 @@ graph TB
 ### 2. 软件层级图
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'background': '#f8fafc', 'primaryColor': '#f1f5f9', 'primaryTextColor': '#334155', 'primaryBorderColor': '#94a3b8', 'lineColor': '#475569', 'secondaryColor': '#fde047', 'tertiaryColor': '#bfdbfe'}}}%%
+ 
 graph TB
     subgraph 应用定制层["应用定制层"]
         AP1["robot_lab v2.3.2<br/>MyDog 四足机器人<br/>26RC 浮舟湿地马术"]
