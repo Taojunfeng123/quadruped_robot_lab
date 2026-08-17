@@ -4,7 +4,7 @@
 
 
 from isaaclab.utils import configclass
-from isaaclab.terrains import HfBridgeGapTerrainCfg
+
 
 import robot_lab.tasks.manager_based.locomotion.velocity.mdp as mdp
 from robot_lab.tasks.manager_based.locomotion.velocity.velocity_env_cfg import LocomotionVelocityRoughEnvCfg
@@ -67,15 +67,7 @@ class RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.scene.terrain.terrain_generator.sub_terrains["boxes"].grid_width = 0.8
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_range = (0.01, 0.06)
         self.scene.terrain.terrain_generator.sub_terrains["random_rough"].noise_step = 0.01
-        self.scene.terrain.terrain_generator.sub_terrains["bridge_gap"] = HfBridgeGapTerrainCfg(
-            proportion=0,
-            size=(3.0, 10.0),    # X 窄 3m → 去掉两侧多余的平地；Y 保持 10m
-            # 课程：difficulty 0→1，缝隙 5cm→15cm（平台宽度固定 40cm）
-            gap_width_range=(0.05, 0.15),
-            platform_strip_width_range=(0.40, 0.40),
-            border_platform_width=1.0,
-            holes_depth=-10.0,
-        )
+
         # ------------------------------Observations------------------------------
         
         self.observations.policy.height_scan = None # type: ignore
