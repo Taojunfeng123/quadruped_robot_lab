@@ -767,11 +767,11 @@ $$threshold_{effective} = threshold \div drive\_ratio$$
 
 **线速度跟踪 (指数核):**
 
-$$r{lin\_vel} = \exp\left(-\frac{|v_{xy}^{cmd} - v——{xy}^{actual}|^2}{\sigma_{lin}^2}\right) \cdot \text{upright\_gate}$$
+$$r_{lin\_vel} = \exp\left(-\frac{|v_{xy}^{cmd} - v_{xy}^{actual}|^2}{\sigma_{lin}^2}\right) \cdot \text{upright\_gate}$$
 
 **角速度跟踪 (指数核):**
 
-$$r{ang\_vel} = \exp\left(-\frac{|\omega_z^{cmd} - \omega_z^{actual}|^2}{\sigma_{ang}^2}\right) \cdot \text{upright\_gate}$$
+$$r_{ang\_vel} = \exp\left(-\frac{|\omega_z^{cmd} - \omega_z^{actual}|^2}{\sigma_{ang}^2}\right) \cdot \text{upright\_gate}$$
 
 **姿态门控 (Upright Gate):**
 
